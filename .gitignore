@@ -1,0 +1,8 @@
+.build/
+*.bin
+*.hex
+*.uf2
+*.elf
+compile_commands.json
+.clangd/
+.vscode/
