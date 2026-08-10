@@ -1,6 +1,38 @@
 # NICOLA 親指シフト 実装仕様書
 
-現行実装（`keyboards/ts52k/keymaps/nicola4r/nicola.c`, master `e3d92a7463`, 1091行）の
+> ## ✅ 書き直し完了 — 2026-08-11
+>
+> この仕様書をもとに `users/nicola/` へ再実装し、TS52K 実機で全項目を確認した。
+> **以降はこの仕様書と `users/nicola/nicola.c` を対で読むこと。**
+> 第4節の遷移表と実装の `nicola_on_m_press()` / `nicola_on_o_press()` /
+> `nicola_on_release()` が 1 対 1 で対応するように書いてある。
+>
+> | 第8節の指摘 | 結果 |
+> |---|---|
+> | 1. 出力テーブル4重複 | 解消。1組に統合し `nicola_table.c` へ。旧 switch から機械生成 |
+> | 2. 状態ごとに関数が生える | 解消。`m/o/om` × `press/release` の6関数に固定 |
+> | 3. `IF_TIMEOUT()` 適用漏れ | 解消。ポーリング分岐を全削除し割り込み方式に一本化 |
+> | 4. `nicola_release_guard()` 依存 | **残した**。下記参照 |
+> | 5. `invert_pinky_shift` の XOR | モード別の if/else に書き下し。**真理値表は不変**、未決事項も未決のまま |
+> | 6. AVR TIMER1 直叩き | 解消。`defer_exec()` へ。排他フラグ `key_process_guard` ごと削除 |
+> | 7. カーソルキーが左右に属さない | 現状維持（`is_cross_shift()` は常に false）。コメントで明記 |
+> | 8. `S6_OO` 残存 | 解消。廃止 |
+> | 9. `t1`/`t2` が状態ごとに別の意味 | 解消。`nicola_intervals(first, second, now, ...)` に抽象化 |
+> | 10. かなキー側の限定反転 | **現状維持**。反転機構のまま（挙動を変えないため） |
+>
+> **指摘4を残した理由:** 実際に必要な経路がある。`S_M` でタイムアウトして
+> M を単独出力した後、held は出力済みのまま状態は `S_M` に留まる。そこへ
+> 親指キーが来て `S_MO` に進むと、同時打鍵出力が前の出力に重なる。
+>
+> **press/release の分離をどう守ったか:** 表を1組にしても
+> **release ではテーブルを引き直さない**。press で実際に register した
+> キーコード列を `nicola_held_t` に記録し、release はそれを unregister する。
+> `is_nicola`・モディファイア・保留内容は press と release の間に変わりうるので、
+> 引き直すと非対称になりキーが押されっぱなしで残る。
+>
+> サイズ 18,226 / 28,672 bytes（旧 20,352 より小さい）。
+
+以下は書き直し前の実装（`keyboards/ts52k/keymaps/nicola4r/nicola.c`, master `e3d92a7463`, 1091行）の
 **挙動を仕様として書き出したもの**。
 
 目的は 2 つ:
