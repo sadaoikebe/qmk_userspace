@@ -8,6 +8,30 @@
 
 対象コミット: `master` = `e3d92a7463` (2026-02-13) / `nishimaki` = `c5f7cf0d26` (2026-04-17)
 
+## 旧フォークの現物はどこにあるか
+
+2026-08-10 に退避完了。`sadaoikebe/qmk_firmware` の `master` は upstream に戻され、
+旧ブランチは削除された。**本文書に書かれたコミットのコードは以下から取得する。**
+
+| 保存先 | 取得できるもの |
+|---|---|
+| [Release `archive/oldfork-final`](https://github.com/sadaoikebe/qmk_firmware/releases/tag/archive/oldfork-final) の `qmk-oldfork.bundle` | **全87ブランチ + 854タグ**。旧フォークの完全な記録 |
+| タグ `archive/oldfork-final` (= `e3d92a7463`) | 旧 master のツリー。GitHub 上でそのまま閲覧可 |
+| `C:\Users\marur\qmk-archive\` | 同一 bundle のローカル控え |
+
+```sh
+gh release download archive/oldfork-final -R sadaoikebe/qmk_firmware
+sha256sum -c qmk-oldfork.bundle.sha256
+git clone qmk-oldfork.bundle restored
+cd restored
+git show e3d92a7463:keyboards/handwired/ajazz82/config.h
+```
+
+> **注意:** `nishimaki` `capacitive` `tc69` `rp2040` `blehack` `bluefruit_uart` `qmk-master`
+> は `e3d92a7463` の**祖先ではない**。タグを辿っても出てこないので、bundle から取ること。
+
+手順と実施記録は [`ARCHIVE-RUNBOOK.md`](ARCHIVE-RUNBOOK.md) を参照。
+
 ---
 
 ## 凡例
@@ -48,22 +72,39 @@
 
 ---
 
-## 移行方針: フォークは不要
+## 移行方針: コアへの差分はゼロにできる（ただしフォーク自体は残る）
 
 このリポジトリが upstream QMK のフォークである理由は、**`quantum/matrix.c` への duplex matrix パッチ 1 点のみ**だった。
 
 duplex を `CUSTOM_MATRIX = lite` でキーボード側に実装すれば
 （`matrix_init_custom()` / `matrix_scan_custom()` を各キーボードの `matrix.c` に書く）、
-**コアへの差分がゼロになりフォークが不要になる。**
+**コアへの差分がゼロになる。** これは検証済みで、追従が `git merge upstream/master` だけで済む
+状態になる。旧フォークのようなマージ地獄は起きない。
 
-推奨する構成は QMK の **External Userspace**:
+### 訂正: External Userspace にキーボード定義は置けない
 
-* 自分のリポジトリには `keyboards/` `users/` `keymaps/` だけを置く
-* `qmk_firmware` は**無改造のまま** clone し、`qmk config user.overlay_dir=<自分のリポジトリ>` で結びつける
-* QMK の追従は `git pull` するだけ。マージ競合が原理的に発生しない
-* submodule は upstream 側の管理になるので、今回のような事故（`lib/ugfx` の孤児 gitlink）が起きない
+**本文書の初版は「External Userspace があればフォークが不要」と書いていたが、これは誤り。**
+実際に QMK 0.33.13 のソースとドキュメントを確認した結果:
 
-> 機能名・コマンド名は本文書作成時点で未検証。着手時に最新の QMK ドキュメントで確認すること。
+* External Userspace が外部に置けるのは
+  `keyboards/<kb>/keymaps/<km>/`、`layouts/<layout>/<km>/`、`users/<name>/` **のみ**
+* **キーボード定義（`keyboard.json` / `matrix.c` / `rules.mk` / `config.h`）は置けない**
+* `build_keyboard.mk` が `KEYBOARD_PATH_1..5 := keyboards/$(...)` とハードコードしており、
+  上書きする変数が存在しない。Python 側も `base_path = os.path.join(os.getcwd(), "keyboards")` 固定
+* `docs/newbs_external_userspace.md` も keymap / layouts / users しか挙げていない
+
+コミュニティの実例（HolyKeebs、BastardKB、SplitKB など自作キーボードベンダ）も、
+キーボード定義については **upstream を追従する軽量フォークに `keyboards/` を足す**構成を取っている。
+
+したがって構成は:
+
+| 置くもの | 場所 |
+|---|---|
+| keymap、`users/`、`layouts/` | External Userspace (`~/qmk_userspace`) |
+| キーボード定義（ts52k 等） | **未決**。軽量フォーク or 手元の作業ツリー |
+
+いずれにせよ submodule は upstream 側の管理になるので、
+今回のような事故（`lib/ugfx` の孤児 gitlink）は起きない。
 
 ### 参考: 今回ビルド不能になった原因
 
@@ -150,7 +191,8 @@ ROW2COL:
 ### RP2040 版への移植メモ
 
 * duplex は維持 → `CUSTOM_MATRIX = lite` で `matrix_init_custom()` / `matrix_scan_custom()` を自前実装する。
-  これにより `quantum/matrix.c` へのコアパッチが不要になり、**フォークではなく素の QMK + 自分の keyboards/ で済む**。
+  これにより `quantum/matrix.c` へのコアパッチが不要になり、**QMK コアへの差分がゼロになる**
+  （ただしキーボード定義自体は `keyboards/` 配下に置く必要があり、External Userspace には置けない。上記「訂正」節を参照）。
 * `key_duration.c` は AVR の TIMER1 直叩き（`TCCR1A/B`, `OCR1A`, `ISR(TIMER1_COMPA_vect)`）。
   RP2040 には TIMER1 が無いので **QMK の `defer_exec()` / `extend_deferred_exec()` に置き換え必須**。
   ついでに `BACKLIGHT_ENABLE = no` / `SLEEP_LED_ENABLE = no` の制約が外れる。
