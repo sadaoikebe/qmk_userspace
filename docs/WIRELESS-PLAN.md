@@ -203,9 +203,15 @@ RP2040 化でも「MCU まわりだけ置き換え、マトリクス配線は原
 **RP2040 は UF2 が内蔵（BOOTSEL）なので SWD プローブは要らない。**
 KB2040 / SparkFun Pro Micro RP2040 / Boardsource Blok / QT Py RP2040 でも同じ。
 
-> **手持ちを先に探すこと。TC69（`capacitive` ブランチ）が XIAO を子基板として載せる設計で、
-> 実際に載せたのは XIAO RP2040 だけ**（[`HARDWARE-REFERENCE.md`](HARDWARE-REFERENCE.md) §8）。
-> **それが残っていれば Phase -1 は ¥0 で始められる。**
+> ⚠️ **TC69 に載っている XIAO RP2040 を流用しないこと。**
+> 一度は「手持ちがあれば ¥0」と書いたが、**それは間違いだった**。
+> **TC69 のファームウェアはどこにもバックアップが無く、ソースは bundle 単独依存**
+> （[`HARDWARE-REFERENCE.md`](HARDWARE-REFERENCE.md) §8）。
+> 今 flash に載っているものが、すぐ使える唯一の TC69 ファームウェアである可能性が高い。
+> **かけがえのないものを ¥1,000 をケチって実験台にしない。新しく買う。**
+>
+> RP2040 は BOOTSEL がマスク ROM にあるので**文鎮化はしない**（何を書いても必ず戻せる）。
+> 危ないのは基板ではなく**ファームウェアが失われること**。
 
 ### Phase A（RP2040 版 TS52K に ZMK 版） — ¥0
 
