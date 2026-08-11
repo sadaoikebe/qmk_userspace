@@ -127,7 +127,8 @@ duplex を `CUSTOM_MATRIX = lite` でキーボード側に実装すれば
 * 現行 MCU: **ATmega32U4 直載せの自作基板**（5V 16MHz 外部クロック）/ bootloader `qmk-dfu`。
   **Pro Micro は使っていない**（この行は以前 "Pro Micro" と誤記していた）
 * リセット: 基板上の `SW1`（`Switch:SW_SPST` / `Button_Switch_SMD:SW_SPST_TL3342`、`RESET` ネット）。
-  ISP ヘッダは `J2`（6ピン）
+  ISP ヘッダは `J2`（6ピン）。**ブートローダへの入り方と切り戻し手順は
+  [`ROLLBACK.md`](ROLLBACK.md)**
 * 部品はすべて **B.Cu（裏面）** に配置。キースイッチは F.Cu なので JLCPCB の片面実装で済む
 * 基板外形は約 **286 × 76mm**（15u × 4u ＝ キー領域そのもの。**ベゼルなし**）。
   北端に USB コネクタ `J1 (23.82, 43.59)` 用の小さな出っ張りがあるだけ

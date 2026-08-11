@@ -3,7 +3,8 @@
 作成 2026-08-12。着手前の検討用。**この時点で実装は一切していない。**
 
 関連文書: [`HARDWARE-REFERENCE.md`](HARDWARE-REFERENCE.md)（全機種のピン配置・回路）、
-[`NICOLA-SPEC.md`](NICOLA-SPEC.md)（親指シフトの挙動仕様。**Phase A の正解表**）
+[`NICOLA-SPEC.md`](NICOLA-SPEC.md)（親指シフトの挙動仕様。**Phase A の正解表**）、
+[`ROLLBACK.md`](ROLLBACK.md)（既知の動作品への切り戻し。**この計画が失敗したときの帰り道**）
 
 ---
 
@@ -499,6 +500,9 @@ QMK 版と ZMK 版を両方持って比べられる状態になるので、こ�
 **最重要: 有線 TS52K は最後まで無傷。**
 現行機と `qmk-archive/known-good/` の hex には一切触らない。
 無線版が失敗しても日常の入力環境は困らない。**これが効いているので、いつやめても致命傷にならない。**
+
+**帰り道の手順は [`ROLLBACK.md`](ROLLBACK.md)。**
+どの hex が何で、どう書き戻すか、失った場合にどう再生成するかを全部そこに書いてある。
 
 ---
 
