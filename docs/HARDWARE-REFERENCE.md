@@ -96,12 +96,16 @@ duplex を `CUSTOM_MATRIX = lite` でキーボード側に実装すれば
 コミュニティの実例（HolyKeebs、BastardKB、SplitKB など自作キーボードベンダ）も、
 キーボード定義については **upstream を追従する軽量フォークに `keyboards/` を足す**構成を取っている。
 
-したがって構成は:
+したがって構成は（**2026-08-11 に確定・実装済み**）:
 
 | 置くもの | 場所 |
 |---|---|
-| keymap、`users/`、`layouts/` | External Userspace (`~/qmk_userspace`) |
-| キーボード定義（ts52k 等） | **未決**。軽量フォーク or 手元の作業ツリー |
+| keymap、`users/`、`layouts/` | External Userspace = `sadaoikebe/qmk_userspace`（このリポジトリ） |
+| キーボード定義（`keyboard.json` / `matrix.c` / `rules.mk`） | `sadaoikebe/qmk_firmware` の **`sadao-master`** ブランチの `keyboards/ts52k/` |
+
+`master` は upstream 完全一致のミラーとして維持し、`sadao-master` = `master` + `keyboards/ts52k/`
+とする（holykeebs 方式）。**コアへの差分はゼロ**なので、`master` を upstream に追従させて
+`sadao-master` にマージするだけで最新に付いていける。
 
 いずれにせよ submodule は upstream 側の管理になるので、
 今回のような事故（`lib/ugfx` の孤児 gitlink）は起きない。
