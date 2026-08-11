@@ -13,10 +13,21 @@
 > | タグ | `archive/oldfork-final` → tag obj `dd06ad4d` → commit `e3d92a7463` |
 > | master | `e3d92a7463` → `9caa5f871d` (upstream 一致) |
 > | 削除ブランチ | 85本（87 − master − docs/hardware-reference） |
-> | 残ブランチ | `master`, `docs/hardware-reference` |
+> | 残ブランチ（当時） | `master`, `docs/hardware-reference` |
 > | 検証 | GitHub から再ダウンロード → SHA256 `OK` → clone → 87 branches / 854 tags → 非祖先ブランチの内容読出成功 |
 >
-> **積み残し:** `qmk_userspace` を GitHub に push したら `docs/hardware-reference` を削除する。
+> ## ✅ 積み残しも完了 — 2026-08-11
+>
+> * `qmk_userspace` を `sadaoikebe/qmk_userspace` へ push（`a7d528a`）
+> * `docs/hardware-reference` を削除。**削除前に、GitHub にも fork にも頼らず
+>   bundle 単独から clone してツリー `05a9e8f5` が一致することを実証**した
+> * `C:\Users\marur\qmk_firmware_oldfork` も削除済み
+>
+> **現在のフォークのブランチは `master`（upstream ミラー）と
+> `sadao-master`（= master + `keyboards/ts52k/`、default branch）の 2 本だけ。**
+>
+> 以降の本文は**当時の手順と判断の記録**である。
+> 「まだ push していない」「消してよい」等の記述は実施当時の状況を指す。
 >
 > 実施中に判明した手順書の誤り（修正済み）:
 >
@@ -634,7 +645,7 @@ rm -rf "/c/Users/marur/AppData/Local/Temp/claude/C--Users-marur/9e80fdcf-2fae-4d
 `C:\Users\marur\qmk_firmware_oldfork` は、bundle 検証が通っていれば消してよい。
 ただし急ぐ必要はない。**しばらく置いておいて、移行が一段落してから消す方が安全。**
 
-## 6-5. ドキュメント修正（別件だが忘れないこと）
+## 6-5. ドキュメント修正（別件だが忘れないこと） — ✅ 2026-08-12 完了
 
 「External Userspace があればフォーク不要」という記述は**誤り**。
 External Userspace は keymap / layouts / users は外に置けるが、**キーボード定義は置けない**
@@ -647,6 +658,12 @@ External Userspace は keymap / layouts / users は外に置けるが、**キー
 - memory: `qmk-migration-plan.md`
 
 また `HARDWARE-REFERENCE.md` に、アーカイブの所在と復元手順を追記する。
+
+> **完了記録（2026-08-12）**: 上記に加えて、`README.md` に残っていた
+> 「ts52k の定義の置き場所は**未決**（案A / 案B）」も解消した。
+> **案A（`sadao-master` に `keyboards/ts52k/` を足す）で決着し、実装も完了している。**
+> 併せて README の `qmk compile -km nicola4r`（存在しない旧 keymap 名）と
+> `user.overlay_dir=~/...`（`~` は Windows で壊れる）も直した。
 
 ---
 

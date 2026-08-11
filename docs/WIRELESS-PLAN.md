@@ -202,7 +202,10 @@ RP2040 化でも「MCU まわりだけ置き換え、マトリクス配線は原
 
 **RP2040 は UF2 が内蔵（BOOTSEL）なので SWD プローブは要らない。**
 KB2040 / SparkFun Pro Micro RP2040 / Boardsource Blok / QT Py RP2040 でも同じ。
-**手持ちに RP2040 ボードがあれば ¥0。**
+
+> **手持ちを先に探すこと。TC69（`capacitive` ブランチ）が XIAO を子基板として載せる設計で、
+> 実際に載せたのは XIAO RP2040 だけ**（[`HARDWARE-REFERENCE.md`](HARDWARE-REFERENCE.md) §8）。
+> **それが残っていれば Phase -1 は ¥0 で始められる。**
 
 ### Phase A（RP2040 版 TS52K に ZMK 版） — ¥0
 
@@ -356,7 +359,7 @@ because Zephyr only supports 32-bit and 64-bit platforms.」
 | **R1** | **買った機材が無駄になる** | **極低** | 小 | — | §7.1 |
 | R2-a | **アンテナが飛ばない** | 中 | **大** | 基板製造後 | **Phase C で前倒し** |
 | R2-b | 電源設計のミス | 中 | 大 | 基板製造後 | Phase C / cyber60 を踏襲 / §10 |
-| R2-c | MDBT50Q の実装・フットプリントのミス | 低〜中 | 大 | 基板製造後 | Phase C |
+| R2-c | MDBT50Q の実装・フットプリントのミス | **低** | 大 | 基板製造後 | Phase C。**TC69 でキャステレーテッド・モジュール（XIAO）を載せる基板を設計・製造した実績がある** |
 | R2-d | MDBT50Q を JLCPCB に実装してもらえない | 高 | **小**（解決済み） | 発注時 | **支給部品(consignment)** or 自宅リフロー。前例あり |
 | R2-e | MCU が物理的に入らない（高さ・干渉） | 中 | 大 | 組立時 | ケース内寸の実測。3D ビュー。2.05mm は有利 |
 | R2-f | duplex が実基板で不安定 | 低 | 大 | 基板製造後 | Phase A（RP2040 実機）+ Phase C |

@@ -48,8 +48,8 @@ git show e3d92a7463:keyboards/handwired/ajazz82/config.h
 
 | キーボード | 処遇 | 備考 |
 |---|---|---|
-| TS52K | 🟢 移植 | 本命。ATmega版 / RP2040版とも **duplex 継続** |
-| TS69 V3 | 🟢 移植 | 69系で一番使っている。duplex |
+| TS52K | ✅ **移植完了** (2026-08-11) | 本命。ATmega版を移植済み。RP2040版は基板を進行中。**duplex 継続** |
+| TS69 V3 | 🟡 資料化 | 69系で一番使っている。duplex。**移植は取りやめた**（2026-08-11、本人判断） |
 | 3×3 マクロパッド (winry / ymd09) | 🟡 資料化 | 現用。中身を差し替えて再構築する想定 |
 | TS69 V1 / V2 | 🟡 資料化 | |
 | Just68 / shobon62 | 🟡 資料化 | |
@@ -133,7 +133,10 @@ duplex を `CUSTOM_MATRIX = lite` でキーボード側に実装すれば
 * 基板外形は約 **286 × 76mm**（15u × 4u ＝ キー領域そのもの。**ベゼルなし**）。
   北端に USB コネクタ `J1 (23.82, 43.59)` 用の小さな出っ張りがあるだけ
 * VID/PID: `0xFEED` / `0x1969`
-* ファームウェア: `keyboards/ts52k/keymaps/nicola4r/`（現役・NICOLA 親指シフト）
+* ファームウェア（現行）: キーボード定義は `sadaoikebe/qmk_firmware` の **`sadao-master`** ブランチの
+  `keyboards/ts52k/`、keymap と状態機械はこの userspace の
+  `keyboards/ts52k/keymaps/{nicola,default}/` と `users/nicola/`
+* 旧フォークでの名前は `keyboards/ts52k/keymaps/nicola4r/` だった（`archive/oldfork-final` 内）
 
 ### マトリクス（duplex / BOTHWAYS）
 
@@ -241,9 +244,12 @@ QMK_ESC_OUTPUT F4   QMK_ESC_INPUT D1
 > ⚠️ `QMK_ESC_OUTPUT F4` は V1 からのコピーのまま。V2 の COL に `F4` は無く、`F4` は RGB_DI に使われている。
 > 再構築時は Esc の実際の交点を測って設定し直すこと（V1 の値が残っているだけの可能性が高い）。
 
-### TS69 V3 — 🟢 移植 / **duplex matrix**
+### TS69 V3 — 🟡 資料化 / **duplex matrix**
 
-**69系で一番使っているキーボード。** TS52K と同じく `CUSTOM_MATRIX = lite` で duplex を自前実装して移植する。
+**69系で一番使っているキーボード。** 当初は移植する予定だったが、
+**2026-08-11 に取りやめた**（本人判断。「遠い将来やるかどうか分からない」）。
+やるとすれば TS52K と同じく `CUSTOM_MATRIX = lite` で duplex を自前実装する。
+**TS52K の移植が完了しているので、手順はそのまま流用できる。**
 
 * ハードウェア: https://github.com/sadaoikebe/ts69v3
 * duplex の解説 PR: https://github.com/qmk/qmk_firmware/pull/8160
@@ -470,15 +476,20 @@ LAYOUT は 4 行 4 列そのまま（`K00`〜`K33`）。
 
 ## 8. TC69 — ⚪ 資料化（アルゴリズムのスタブ付き / ブランチ `capacitive`）
 
-RP2040 + **静電容量無接点**。`master` とは合流していない別系統で、
-**このリポジトリで唯一 2023-04 の新しい QMK ベース**。
+**Seeed XIAO をキャステレーテッドで載せる**静電容量無接点基板。
+`master` とは合流していない別系統で、**このリポジトリで唯一 2023-04 の新しい QMK ベース**。
+
+* MCU は基板直載せではなく **XIAO モジュールを子基板として載せる**設計。
+  **実際に載せたことがあるのは XIAO RP2040 だけ**（XIAO は同じ footprint で
+  RP2040 / nRF52840 などが差し替えられる）
+* 静電容量そのものへの興味は現在薄れており、**復活の優先度は低い**（2026-08-12 時点）
 
 > 静電容量は回路さえ分かればアルゴリズムから再構築できるタイプなので、
 > **ピン配置に加えて中核アルゴリズムを実コードのまま**下に残す。
 > これがあれば後から復活させられる。
 
 ```
-MCU: RP2040 / bootloader rp2040
+MCU: XIAO RP2040 (子基板 / キャステレーテッド) / bootloader rp2040
 CUSTOM_MATRIX = yes    (SRC += matrix.c, analog.c)
 
 CAP_ROW_PINS { GP2, GP4, GP1, GP0, GP7 }       ← 5 行を順に駆動

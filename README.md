@@ -28,22 +28,40 @@ duplex matrix パッチ 1 点だけだった。これを `CUSTOM_MATRIX = lite` 
 コミュニティの実例（HolyKeebs、BastardKB、SplitKB など）も、
 キーボード定義については **QMK の軽量フォークに `keyboards/` を足す**形を取っている。
 
-したがって ts52k 等の定義の置き場所は別途決める必要がある。**未決**。
+### 置き場所は決着済み — 軽量フォークに `keyboards/` だけ足す
 
-- 案A: `sadaoikebe/qmk_firmware`（upstream 追従の軽量フォーク）に `keyboards/` だけ足す
-- 案B: 手元の `~/qmk_firmware` の作業ツリーに置き、定義だけ別途バージョン管理する
+**`sadaoikebe/qmk_firmware` の `sadao-master` ブランチ**に `keyboards/ts52k/` を置いた
+（holykeebs 方式）。`master` は upstream 完全一致のミラーとして維持する。
 
-いずれにせよコアへの差分はゼロなので、`git merge upstream/master` で
-競合なく追従できる。旧フォークのようなマージ地獄にはならない。
+```
+sadaoikebe/qmk_firmware
+  master        upstream (qmk/qmk_firmware) の完全なミラー
+  sadao-master  = master + keyboards/ts52k/   ← GitHub の default branch
+
+sadaoikebe/qmk_userspace  (このリポジトリ)
+  users/nicola/                    状態機械
+  keyboards/ts52k/keymaps/nicola/  レイアウトとゲート
+  keyboards/ts52k/keymaps/default/ NICOLA なし。マトリクス切り分け用
+```
+
+コアへの差分はゼロなので、`master` を upstream に追従させて `sadao-master` にマージするだけで
+競合なく最新に付いていける。旧フォークのようなマージ地獄にはならない。
 
 ## 使い方
 
 ```bash
-qmk config user.overlay_dir=~/qmk_userspace
+qmk config user.overlay_dir=C:/Users/marur/qmk_userspace
 qmk userspace-doctor            # 疎通確認
 qmk userspace-compile           # build_targets を全部ビルド
-qmk compile -kb ts52k -km nicola4r
+qmk compile -kb ts52k -km nicola
+qmk compile -kb ts52k -km default
 ```
+
+> ⚠️ `user.overlay_dir` に **`~` を使ってはいけない。** QMK 側の Python の
+> `expanduser()` が Windows で正しく解決できず、userspace を見失う。**絶対パスで書く。**
+>
+> ⚠️ Windows では `qmk` を **QMK MSYS のログインシェル経由**で呼ぶこと。
+> 直接叩くと milc が `KeyError: 'SHELL'` で落ちる。
 
 ## ドキュメント
 
@@ -51,12 +69,17 @@ qmk compile -kb ts52k -km nicola4r
 |---|---|
 | [`docs/HARDWARE-REFERENCE.md`](docs/HARDWARE-REFERENCE.md) | 全キーボードの回路情報。ピン配置・LAYOUT・fuse・ISP手順・duplex matrix 配線 |
 | [`docs/NICOLA-SPEC.md`](docs/NICOLA-SPEC.md) | 親指シフト実装の挙動仕様。設計原則・状態遷移表・書き直し指針 |
+| [`docs/ROLLBACK.md`](docs/ROLLBACK.md) | **困ったときに開く。** 既知の動作品への切り戻し手順とブートローダの入り方 |
+| [`docs/WIRELESS-PLAN.md`](docs/WIRELESS-PLAN.md) | TS52K 無線版（ZMK + nRF52840）の計画。費用・期間・リスク評価 |
 | [`docs/ARCHIVE-RUNBOOK.md`](docs/ARCHIVE-RUNBOOK.md) | 旧フォークを退避して GitHub リポジトリを整理した手順と実施記録 |
 
 ## 旧フォークの履歴
 
 2026-08-10 に退避完了。`github.com/sadaoikebe/qmk_firmware` の `master` は
-upstream と一致する状態に戻され、旧ブランチは削除された。
+upstream と一致する状態に戻され、旧ブランチ 87 本は削除された。
+**現在このフォークにあるブランチは `master` と `sadao-master` の 2 本だけ**
+（`docs/hardware-reference` は 2026-08-11 に削除。削除前に bundle 単独から clone して
+同一のツリーが再現できることを実証済み）。
 
 | 保存先 | 内容 |
 |---|---|
