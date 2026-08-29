@@ -8,15 +8,10 @@
  * そのままなぞっている。表と読み比べて検証できるようにするため、
  * 状態ごとの分岐は畳まずに素直な switch で書いてある。
  *
- * 旧実装から変えた点は 3 つだけ:
+ * 解放時の逐次/同時識別は NICOLA 規格書 5.5.2（図7）に合わせる:
+ *   is_sequential = (t1 > t2 * n) || (t2 < T_abs)
  *
- *   1. 出力テーブルを 1 組に統合した (nicola_table.c)。
- *      press/release の対応は「実際に register した列を記録する」ことで守る。
- *   2. AVR の TIMER1 直叩きを QMK の defer_exec() に置き換えた。
- *      MCU 非依存になり、BACKLIGHT_ENABLE = no の制約も外れた。
- *   3. S6_OO (親指2つの同時打鍵) を廃止した。
- *
- * 挙動は変えていない。特に以下は仕様なので直さないこと:
+ * 守ること:
  *
  *   - かな入力で「な」を押しっぱなしにすると「なあああああ」とリピートする。
  *     press/release を物理キーに厳密対応させた結果として必然的にこうなる。
@@ -36,12 +31,16 @@
  * タイミング定数
  * ------------------------------------------------------------------ */
 
-/* 同時打鍵とみなす最大間隔 */
+/* 同時打鍵とみなす最大間隔（規格の「同時打鍵判定時間」） */
 #define NICOLA_TIMEOUT_MS 80
 
-/* 「まだ次の打鍵と結合する余地がある」とみなす重なり時間。
- * 先に押したキーをこれより速く離したら、後のキーは保留したままにする */
+/* 重なり絶対下限 T_abs。t2 がこれ未満なら t1 によらず逐次打鍵
+ * （規格 5.5.2 の補助案） */
 #define NICOLA_OVERLAP_MS 20
+
+/* 比係数 n。t1 > t2 * n なら逐次打鍵（規格 5.5.2 の本判定）。
+ * 整数のみ。初期値 1 */
+#define NICOLA_SEQUENTIAL_N 1
 
 /* 追い越し防止バッファの段数 */
 #define NICOLA_MAX_PENDING 8
@@ -398,6 +397,19 @@ static void nicola_intervals(uint16_t first, uint16_t second, uint16_t now, uint
     *t2 = now - second;
 }
 
+/* 規格 5.5.2（図7）: 逐次打鍵と同時打鍵の識別。
+ *
+ *   t1 = 先キー ON → 後キー ON
+ *   t2 = 後キー ON → 今（離したキーの OFF 時刻）
+ *
+ * ON 間隔だけ見ると判定時間内は必ず同時に見えるが、短い重なりは
+ * 英文タイプのロールオーバー（文字→Space など）でも起きる。
+ * 比判定を主、絶対短い t2 を補助とする。 */
+static bool nicola_is_sequential(uint16_t t1, uint16_t t2) {
+    /* t2 * n は uint32 で計算し、n を上げたときのオーバーフローを避ける */
+    return ((uint32_t)t1 > (uint32_t)t2 * NICOLA_SEQUENTIAL_N) || (t2 < NICOLA_OVERLAP_MS);
+}
+
 /* ------------------------------------------------------------------
  * 遷移: M キー押下   (NICOLA-SPEC.md 4-1)
  * ------------------------------------------------------------------ */
@@ -490,12 +502,11 @@ static void nicola_on_o_press(uint16_t keycode, uint16_t now) {
 }
 
 /* ------------------------------------------------------------------
- * 遷移: M / O キー解放   (NICOLA-SPEC.md 4-3)
+ * 遷移: M / O キー解放   (NICOLA-SPEC.md 4-3 / 規格 5.5.2)
  *
- * t2 < NICOLA_OVERLAP_MS は「先に押したキーを離すのが速すぎる =
- * 後のキーはまだ次の打鍵と結合する余地がある」の意味。
- * このときだけ先のキーを単独で出し、後のキーを保留したまま状態を 1 段戻す。
- * 速いロールオーバー入力を拾うための例外。
+ * S_MO / S_OM では nicola_is_sequential() で逐次と同時を分ける。
+ * 逐次なら離した側だけ単独確定し、残りのキーを 1 段戻して保留する。
+ * 後キー解放にも同じ式を対称適用する（現行は後キー解放を常に同時にしていた）。
  * ------------------------------------------------------------------ */
 
 static void nicola_on_release(uint16_t keycode, uint16_t now) {
@@ -521,9 +532,9 @@ static void nicola_on_release(uint16_t keycode, uint16_t now) {
 
         case S_MO:
             if (nicola_m_key == keycode) {
+                /* 図7本線: M→O のあと先キー(M)を離す */
                 nicola_intervals(nicola_m_time, nicola_o_time, now, &t1, &t2);
-                if (t1 >= t2 && t2 < NICOLA_OVERLAP_MS) {
-                    /* M だけ確定。O は保留のまま S_O へ戻す */
+                if (nicola_is_sequential(t1, t2)) {
                     nicola_m_release();
                     nicola_int_state = S_O;
                 } else {
@@ -531,16 +542,23 @@ static void nicola_on_release(uint16_t keycode, uint16_t now) {
                     nicola_goto_init();
                 }
             } else if (nicola_o_key == keycode) {
-                nicola_om_release();
-                nicola_goto_init();
+                /* 後キー(O)解放。同じ識別式を対称適用 */
+                nicola_intervals(nicola_m_time, nicola_o_time, now, &t1, &t2);
+                if (nicola_is_sequential(t1, t2)) {
+                    nicola_o_release();
+                    nicola_int_state = S_M;
+                } else {
+                    nicola_om_release();
+                    nicola_goto_init();
+                }
             }
             break;
 
         case S_OM:
             if (nicola_o_key == keycode) {
+                /* O→M のあと先キー(O)を離す */
                 nicola_intervals(nicola_o_time, nicola_m_time, now, &t1, &t2);
-                if (t1 >= t2 && t2 < NICOLA_OVERLAP_MS) {
-                    /* O だけ確定。M は保留のまま S_M へ戻す */
+                if (nicola_is_sequential(t1, t2)) {
                     nicola_o_release();
                     nicola_int_state = S_M;
                 } else {
@@ -548,8 +566,15 @@ static void nicola_on_release(uint16_t keycode, uint16_t now) {
                     nicola_goto_init();
                 }
             } else if (nicola_m_key == keycode) {
-                nicola_om_release();
-                nicola_goto_init();
+                /* 後キー(M)解放。同じ識別式を対称適用 */
+                nicola_intervals(nicola_o_time, nicola_m_time, now, &t1, &t2);
+                if (nicola_is_sequential(t1, t2)) {
+                    nicola_m_release();
+                    nicola_int_state = S_O;
+                } else {
+                    nicola_om_release();
+                    nicola_goto_init();
+                }
             }
             break;
     }

@@ -31,9 +31,28 @@
 > 引き直すと非対称になりキーが押されっぱなしで残る。
 >
 > サイズ 18,226 / 28,672 bytes（旧 20,352 より小さい）。
+>
+> ### ✅ 2026-08-29 — 規格 5.5.2（逐次打鍵）を実装
+>
+> 英文タイプで Space（親指キー）が文字とロールオーバーしたとき、同時打鍵と
+> 誤認して数字・記号が出る問題があった。原因は解放時の識別が
+> `(t1 >= t2) && (t2 < 20)` と狭く、後キー解放は常に同時扱いにしていたこと。
+>
+> NICOLA 配列規格書 5.5.2（図7）に合わせ、`nicola_is_sequential()` を導入した。
+>
+> ```
+> is_sequential = (t1 > t2 * n) || (t2 < T_abs)
+>   n     = NICOLA_SEQUENTIAL_N (初期値 1)
+>   T_abs = NICOLA_OVERLAP_MS   (20ms)
+> ```
+>
+> `S_MO` / `S_OM` では先キー・後キーどちらの解放でも同じ式を使う（対称化）。
+> 第 3 節の定数と第 4-3 節の遷移表を現行実装に合わせて更新済み。
+> TS52K 実機で英文 Space の改善を確認。
 
 以下は書き直し前の実装（`keyboards/ts52k/keymaps/nicola4r/nicola.c`, master `e3d92a7463`, 1091行）の
-**挙動を仕様として書き出したもの**。
+**挙動を仕様として書き出したもの**。ただし第 3 節・第 4-3 節は上記 5.5.2 対応後の
+現行 `users/nicola/nicola.c` に合わせて更新している。
 
 目的は 2 つ:
 
@@ -211,12 +230,30 @@ is_cross_shift(m, o) = (左手キー && o == NG_SHFTR) || (右手キー && o == 
 
 ## 3. タイミング定数
 
+現行実装 (`users/nicola/nicola.c`):
+
 ```c
-#define TIMEOUT_THRESHOLD (80)   // ms — 同時打鍵とみなす最大間隔
-#define OVERLAP_THRESHOLD (20)   // ms — 「まだ結合の余地あり」とみなす重なり時間
+#define NICOLA_TIMEOUT_MS    80  // 同時打鍵判定時間 T（規格の同時打鍵判定時間）
+#define NICOLA_OVERLAP_MS    20  // T_abs。t2 がこれ未満なら t1 によらず逐次
+#define NICOLA_SEQUENTIAL_N   1  // 比係数 n。t1 > t2*n なら逐次（規格 5.5.2）
 ```
 
-### タイムアウトの実装が 2 系統ある
+| 定数 | 役割 |
+|---|---|
+| `T` (`NICOLA_TIMEOUT_MS`) | ON 間隔の同時候補窓。タイムアウトもこの値 |
+| `T_abs` (`NICOLA_OVERLAP_MS`) | 規格 5.5.2 の補助案。短い重なりは無条件で逐次 |
+| `n` (`NICOLA_SEQUENTIAL_N`) | 規格 5.5.2 の本判定。`t1 > t2×n` なら逐次 |
+
+解放時の識別式:
+
+```c
+is_sequential = (t1 > t2 * n) || (t2 < T_abs);
+```
+
+（書き直し前の旧名は `TIMEOUT_THRESHOLD` / `OVERLAP_THRESHOLD`。旧解放条件は
+`(t1 >= t2) && (t2 < 20)` で、後キー解放は常に同時だった。）
+
+### タイムアウトの実装が 2 系統ある（書き直し前の話）
 
 ```c
 #ifdef TIMEOUT_INTERRUPT
@@ -346,27 +383,40 @@ cont_process = false;
 
 対象は `NG_TOP <= keycode <= NG_BOTTOM` の全て。**必ず `cont_process = false`（飲み込む）。**
 
+`S_MO` / `S_OM` の逐次判定は規格書 5.5.2（図7）に従う:
+
+```
+t1 = 先キー ON → 後キー ON
+t2 = 後キー ON → 今（離したキーの OFF）
+is_sequential = (t1 > t2 * n) || (t2 < T_abs)
+```
+
 | 現状態 | 条件 | 出力 | 次状態 |
 |---|---|---|---|
-| `S1_INIT` | — | なし | `S1_INIT` |
-| `S2_M` | `m_key == keycode` | M を単独確定 | `S1_INIT` |
-| `S2_M` | 別のキー | なし | `S2_M` |
-| `S3_O` | `o_key == keycode` | O を単独確定 | `S1_INIT` |
-| `S3_O` | 別のキー | なし | `S3_O` |
-| `S4_MO` | `m_key == keycode` かつ `t1 >= t2` かつ `t2 < 20` | **M だけ**確定 (`m_release`) | `S3_O` |
-| `S4_MO` | `m_key == keycode` かつ 上記以外 | MO 同時打鍵を確定 | `S1_INIT` |
-| `S4_MO` | `o_key == keycode` | MO 同時打鍵を確定 | `S1_INIT` |
-| `S5_OM` | `o_key == keycode` かつ `t1 >= t2` かつ `t2 < 20` | **O だけ**確定 (`o_release`) | `S2_M` |
-| `S5_OM` | `o_key == keycode` かつ 上記以外 | OM 同時打鍵を確定 | `S1_INIT` |
-| `S5_OM` | `m_key == keycode` | OM 同時打鍵を確定 | `S1_INIT` |
+| `S_INIT` | — | なし | `S_INIT` |
+| `S_M` | `m_key == keycode` | M を単独確定 | `S_INIT` |
+| `S_M` | 別のキー | なし | `S_M` |
+| `S_O` | `o_key == keycode` | O を単独確定 | `S_INIT` |
+| `S_O` | 別のキー | なし | `S_O` |
+| `S_MO` | `m_key == keycode` かつ **逐次** | **M だけ**確定 (`m_release`) | `S_O` |
+| `S_MO` | `m_key == keycode` かつ 同時 | MO 同時打鍵を確定 | `S_INIT` |
+| `S_MO` | `o_key == keycode` かつ **逐次** | **O だけ**確定 (`o_release`) | `S_M` |
+| `S_MO` | `o_key == keycode` かつ 同時 | MO 同時打鍵を確定 | `S_INIT` |
+| `S_OM` | `o_key == keycode` かつ **逐次** | **O だけ**確定 (`o_release`) | `S_M` |
+| `S_OM` | `o_key == keycode` かつ 同時 | OM 同時打鍵を確定 | `S_INIT` |
+| `S_OM` | `m_key == keycode` かつ **逐次** | **M だけ**確定 (`m_release`) | `S_O` |
+| `S_OM` | `m_key == keycode` かつ 同時 | OM 同時打鍵を確定 | `S_INIT` |
 
-* `S4_MO` の解放判定: `t1 = o_time - m_time`、`t2 = now - o_time`
-* `S5_OM` の解放判定: `t1 = m_time - o_time`、`t2 = now - m_time`
+* `S_MO` の解放判定: `t1 = o_time - m_time`、`t2 = now - o_time`
+* `S_OM` の解放判定: `t1 = m_time - o_time`、`t2 = now - m_time`
 
-`t2 < OVERLAP_THRESHOLD (20ms)` の意味:
-**「先に押したキーを離すのが速すぎる = まだ後のキーは次の打鍵と結合する余地がある」**。
-この場合だけ先のキーを単独で出し、後のキーを保留したまま状態を 1 段戻す。
-早いロールオーバー入力を拾うための例外処理。
+**意図（規格 5.5.2）:** ON 間隔だけ見ると判定時間内は必ず同時に見えるが、
+短い重なりは英文タイプのロールオーバー（文字 → Space）でも起きる。
+比判定を主、絶対短い `t2` を補助とし、逐次なら離した側だけ単独確定して
+残りを 1 段戻す。先キー・後キーどちらを離しても同じ式（対称）。
+
+> 書き直し直後〜2026-08-29 までは旧式
+> `t1 >= t2 && t2 < 20`（先キー解放のみ。後キー解放は常に同時）だった。
 
 ---
 
