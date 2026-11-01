@@ -70,7 +70,6 @@ qmk compile -kb ts52k -km default
 | [`docs/HARDWARE-REFERENCE.md`](docs/HARDWARE-REFERENCE.md) | 全キーボードの回路情報。ピン配置・LAYOUT・fuse・ISP手順・duplex matrix 配線 |
 | [`docs/NICOLA-SPEC.md`](docs/NICOLA-SPEC.md) | 親指シフト実装の挙動仕様。設計原則・状態遷移表・書き直し指針 |
 | [`docs/ROLLBACK.md`](docs/ROLLBACK.md) | **困ったときに開く。** 既知の動作品への切り戻し手順とブートローダの入り方 |
-| [`docs/WIRELESS-PLAN.md`](docs/WIRELESS-PLAN.md) | TS52K 無線版（ZMK + nRF52840）の計画。費用・期間・リスク評価 |
 | [`docs/ARCHIVE-RUNBOOK.md`](docs/ARCHIVE-RUNBOOK.md) | 旧フォークを退避して GitHub リポジトリを整理した手順と実施記録 |
 
 ## 旧フォークの履歴

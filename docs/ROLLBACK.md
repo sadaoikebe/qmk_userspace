@@ -2,8 +2,7 @@
 
 **困ったときに最初に開く文書。** TS52K が動かなくなったとき、既知の動作品に戻すための手順。
 
-関連: [`HARDWARE-REFERENCE.md`](HARDWARE-REFERENCE.md)（ピン配置・ISP / fuse）、
-[`WIRELESS-PLAN.md`](WIRELESS-PLAN.md)（無線版の計画。§8 撤退ライン）
+関連: [`HARDWARE-REFERENCE.md`](HARDWARE-REFERENCE.md)（ピン配置・ISP / fuse）
 
 ---
 
@@ -97,9 +96,6 @@ NICOLA は載せていない、素の QWERTY。
 **これを残す理由は切り分け。** NICOLA を載せた後に打鍵がおかしくなったとき、
 これを焼けば「マトリクス（ハードウェア・スキャン）の問題」か
 「状態機械の問題」かを一発で分離できる。全キーが正しく出るならマトリクスは無実。
-
-**ZMK 版・無線版を作るときにも、同じ役割の基準として使う**
-（[`WIRELESS-PLAN.md`](WIRELESS-PLAN.md) Phase A-2）。
 
 ---
 
