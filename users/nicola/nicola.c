@@ -694,14 +694,14 @@ void set_nicola(uint8_t layer) {
 }
 
 void nicola_on(void) {
-    is_nicola = true;
     nicola_clear();
+    is_nicola = true;
     layer_on(nicola_layer);
 }
 
 void nicola_off(void) {
-    is_nicola = false;
     nicola_clear();
+    is_nicola = false;
     layer_off(nicola_layer);
 }
 

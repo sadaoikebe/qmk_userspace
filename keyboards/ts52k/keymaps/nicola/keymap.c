@@ -65,9 +65,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case KANA_OFF:
             if (record->event.pressed) {
+                nicola_off();
                 register_code(KC_INT5);  /* Windows 無変換 */
                 register_code(KC_LNG2);  /* Mac 英数 */
-                nicola_off();
             } else {
                 unregister_code(KC_LNG2);
                 unregister_code(KC_INT5);
@@ -76,9 +76,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
         case KANA_ON:
             if (record->event.pressed) {
+                nicola_on();
                 register_code(KC_INT4);  /* Windows 変換 */
                 register_code(KC_LNG1);  /* Mac かな */
-                nicola_on();
             } else {
                 unregister_code(KC_LNG1);
                 unregister_code(KC_INT4);
