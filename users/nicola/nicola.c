@@ -127,9 +127,9 @@ static void held_release_stale(void) {
 /* ------------------------------------------------------------------
  * 追い越し防止バッファ
  *
- * 状態機械が動作中 (S_INIT 以外) に非 NICOLA キーが来たとき、それを先に
- * 出力すると順序が逆転する。バッファに積んでおき、保留中の打鍵が確定した
- * ときに一緒に吐き出す。
+ * 状態機械が動作中 (S_INIT 以外) に非 NICOLA の basic / QK_MODS キーが
+ * 来たとき、それを先に出力すると順序が逆転する。register_code16 で再生できる
+ * 出力だけをバッファに積み、保留中の打鍵が確定したときに一緒に吐き出す。
  *
  * 吐き出しは出力を伴う全ての操作の末尾から呼ぶ。
  * ------------------------------------------------------------------ */
@@ -167,6 +167,10 @@ static bool is_nicola_o_key(uint16_t keycode) {
 
 static bool is_nicola_key(uint16_t keycode) {
     return keycode >= NG_TOP && keycode <= NG_BOTTOM;
+}
+
+static bool is_replayable_key(uint16_t keycode) {
+    return IS_QK_BASIC(keycode) || IS_QK_MODS(keycode);
 }
 
 static bool is_nicola_left_finger(uint16_t keycode) {
@@ -606,6 +610,10 @@ static bool nicola_on_other(uint16_t keycode, bool pressed) {
  * ------------------------------------------------------------------ */
 
 bool process_nicola(uint16_t keycode, keyrecord_t *record) {
+    if (!is_nicola_key(keycode) && !is_replayable_key(keycode)) {
+        return true;
+    }
+
     uint16_t now = timer_read();
 
     if (record->event.pressed) {
