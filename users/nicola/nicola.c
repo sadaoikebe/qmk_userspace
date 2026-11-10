@@ -61,6 +61,7 @@ static nicola_state_e nicola_int_state = S_INIT;
 
 static bool    is_nicola    = false;
 static uint8_t nicola_layer = 0;
+/* かなモード中の modifier 数。英数モード中は使わず、ON 時に再取得する。 */
 static uint8_t n_modifier   = 0;
 
 static uint16_t nicola_m_key = KC_NO;
@@ -637,7 +638,7 @@ bool process_nicola(uint16_t keycode, keyrecord_t *record) {
 
 /* [ゲート2] かなモード中に modifier を押している間は NICOLA レイヤーを外し、
  * 素の QWERTY を露出させる。Ctrl+Shift+X のような複数同時でも戻せるよう
- * 押されている数を数える。 */
+ * 押されている数を数える。英数中の変化は nicola_on() で反映する。 */
 void nicola_mode(uint16_t keycode, keyrecord_t *record) {
     if (!is_nicola) {
         return;
@@ -695,8 +696,13 @@ void set_nicola(uint8_t layer) {
 
 void nicola_on(void) {
     nicola_clear();
+    n_modifier = bitpop(get_mods());
     is_nicola = true;
-    layer_on(nicola_layer);
+    if (n_modifier == 0) {
+        layer_on(nicola_layer);
+    } else {
+        layer_off(nicola_layer);
+    }
 }
 
 void nicola_off(void) {
